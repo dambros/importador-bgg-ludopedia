@@ -23,7 +23,7 @@ def start():
 
     bgg_collection = get_bgg_collection(bgg_user)
     login_ludopedia(session, ludopedia_email, ludopedia_pass)
-    export_collection(session, bgg_collection)
+    import_collection(session, bgg_collection)
 
     print(colorama.Fore.GREEN + 'Importação finalizada com sucesso!\n\n')
 
@@ -43,9 +43,10 @@ def get_bgg_collection(username):
         root = ElementTree.fromstring(response.content)
 
         if root.tag == 'errors':
-            raise ValueError('Usuário inválido, abortando...')
+            print(colorama.Fore.RED + 'Usuário BGG inválido, abortando...')
+            sys.exit(0)
         else:
-            total_jogos = root.attrib['totalitems'];
+            total_jogos = root.attrib['totalitems']
             print('Total de jogos encontrado no BGG: {}\n'.format(total_jogos))
 
             for item in root.findall('item'):
@@ -70,7 +71,7 @@ def login_ludopedia(session, email, password):
         sys.exit(0)
 
 
-def export_collection(session, collection):
+def import_collection(session, collection):
     print("Importando coleção...\n")
     ludopedia_search_url = '{}{}'.format(LUDOPEDIA_URL,
                                          'classes/ajax/aj_search.php')
