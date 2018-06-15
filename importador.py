@@ -16,16 +16,16 @@ def start():
         "Por favor entre abaixo as informações necessárias para importar "
         "uma coleção do BGG para a Ludopedia\n\n")
 
-    session = requests.Session()
     bgg_user = input("Username BGG: ")
     ludopedia_email = input("Email Ludopedia: ")
     ludopedia_pass = input("Password Ludopedia: ")
 
     bgg_collection = get_bgg_collection(bgg_user)
-    login_ludopedia(session, ludopedia_email, ludopedia_pass)
+    session = login_ludopedia(ludopedia_email, ludopedia_pass)
     import_collection(session, bgg_collection)
 
     print(colorama.Fore.GREEN + 'Importação finalizada com sucesso!\n\n')
+    input("Pressione ENTER para sair")
 
 
 def get_bgg_collection(username):
@@ -52,17 +52,18 @@ def get_bgg_collection(username):
             for item in root.findall('item'):
                 name = item.find('name').text
                 status = item.find('status')
-                year = item.find('yearpublished').text
-                collection.append((name, status.attrib, year))
+                year_published = item.find('yearpublished').text
+                collection.append((name, status.attrib, year_published))
 
     return collection
 
 
-def login_ludopedia(session, email, password):
+def login_ludopedia(email, password):
     print("Obtendo dados do Ludopedia...\n")
     login_url = '{}{}'.format(LUDOPEDIA_URL, 'login')
     payload = {'email': email, 'pass': password}
 
+    session = requests.Session()
     r = session.post(login_url, data=payload)
 
     if 'senha incorretos' in r.text:
@@ -70,35 +71,38 @@ def login_ludopedia(session, email, password):
                                   'fornecidas, abortando...')
         sys.exit(0)
 
+    return session
+
 
 def import_collection(session, collection):
     print("Importando coleção...\n")
     ludopedia_search_url = '{}{}'.format(LUDOPEDIA_URL,
                                          'classes/ajax/aj_search.php')
-    params = {'tipo': 'jogo', 'count': 'true', 'pagina': 1, 'qt_rows': 10}
+    params = {'tipo': 'jogo', 'count': 'true', 'pagina': 1, 'qt_rows': 20}
 
     ludopedia_add_game_url = '{}{}'.format(LUDOPEDIA_URL,
                                            'classes/jogo_usuario_ajax.php')
 
-    for game in collection:
-        params['nm_jogo'] = game[0]
+    for bgg_game in collection:
+        params['nm_jogo'] = bgg_game[0]
         r = session.get(ludopedia_search_url, params=params)
         data = r.json()['data']
 
         if data:
-            jogo = data[0]
-            year = game[2]
+            for item in data:
+                year_published = bgg_game[2]
 
-            if jogo['ano_publicacao'] == year:
-                id_jogo = jogo['id_jogo']
-                own = game[1]['own']
-                wishlist = game[1]['wishlist']
-                payload_add_game = {
-                    'id_jogo': id_jogo,
-                    'fl_tem': own,
-                    'fl_quer': wishlist
-                }
-                session.post(ludopedia_add_game_url, data=payload_add_game)
+                if item['ano_publicacao'] == year_published:
+                    id_jogo = item['id_jogo']
+                    own = bgg_game[1]['own']
+                    wishlist = bgg_game[1]['wishlist']
+                    payload_add_game = {
+                        'id_jogo': id_jogo,
+                        'fl_tem': own,
+                        'fl_quer': wishlist
+                    }
+                    session.post(ludopedia_add_game_url, data=payload_add_game)
+                    break
 
 
 if __name__ == "__main__":
