@@ -235,28 +235,41 @@ def import_plays(session, plays, my_bgg_user, ludo_user_id):
         data = r.json()['data']
 
         if data:
+            found = None
+
             for item in data:
                 if item['ano_publicacao'] == year_published:
-                    id_jogo = item['id_jogo']
-
-                    payload_add_play = {
-                        'id_jogo': id_jogo,
-                        'dt_partida': datetime.strptime(date, '%Y-%m-%d').strftime('%d/%m/%Y'),
-                        'qt_partidas': 1,
-                        'duracao_h': int(int(length)/60),
-                        'duracao_m': int(length)%60,
-                        'descricao': comments,
-
-                        # (name, bgguser, startposition, score, win)
-                        'id_partida_jogador[]': map(lambda p: 0 if my_bgg_user == p[1] else '', players),
-                        'id_usuario[]': map(lambda p: ludo_user_id if my_bgg_user == p[1] else ludo_users.get(p[1], ''), players),
-                        'nome[]': map(lambda p: p[0], players),
-                        'fl_vencedor[]': map(lambda p: p[4], players),
-                        'vl_pontos[]': map(lambda p: p[3], players),
-                        'observacao[]': map(lambda p: f'Jogador {p[2]}', players)
-                    }
-                    session.post(ludopedia_add_play_url, data=payload_add_play)
+                    found = item
                     break
+            
+            if (not found):
+                print(f'Nenhum jogo encontrado no ano de lançamento: {game_name} {year_published}')
+
+                found = data[0]
+                print(f"Importando o primeiro resultado: {found['nm_jogo']} {found['ano_publicacao']}\n")
+            
+            id_jogo = found['id_jogo']
+
+            payload_add_play = {
+                'id_jogo': id_jogo,
+                'dt_partida': datetime.strptime(date, '%Y-%m-%d').strftime('%d/%m/%Y'),
+                'qt_partidas': 1,
+                'duracao_h': int(int(length)/60),
+                'duracao_m': int(length)%60,
+                'descricao': comments,
+
+                # (name, bgguser, startposition, score, win)
+                'id_partida_jogador[]': map(lambda p: 0 if my_bgg_user == p[1] else '', players),
+                'id_usuario[]': map(lambda p: ludo_user_id if my_bgg_user == p[1] else ludo_users.get(p[1], ''), players),
+                'nome[]': map(lambda p: p[0], players),
+                'fl_vencedor[]': map(lambda p: p[4], players),
+                'vl_pontos[]': map(lambda p: p[3], players),
+                'observacao[]': map(lambda p: f'Jogador {p[2]}', players)
+            }
+            session.post(ludopedia_add_play_url, data=payload_add_play)
+
+        else:
+            print(f'Jogo não encontrado na Ludopedia: {game_name}')
 
 if __name__ == "__main__":
     start()
