@@ -248,8 +248,8 @@ def import_plays(session, plays, my_bgg_user, ludo_user_id):
                         'descricao': comments,
 
                         # (name, bgguser, startposition, score, win)
-                        'id_partida_jogador[]': map(lambda p: 0, players),
-                        'id_usuario[]': map(lambda p: ludo_user_id if my_bgg_user == p[1] else ludo_users.get(p[1]), players),
+                        'id_partida_jogador[]': map(lambda p: 0 if my_bgg_user == p[1] else '', players),
+                        'id_usuario[]': map(lambda p: ludo_user_id if my_bgg_user == p[1] else ludo_users.get(p[1], ''), players),
                         'nome[]': map(lambda p: p[0], players),
                         'fl_vencedor[]': map(lambda p: p[4], players),
                         'vl_pontos[]': map(lambda p: p[3], players),
