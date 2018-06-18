@@ -115,12 +115,26 @@ def import_collection(session, collection):
                     session.post(ludopedia_add_game_url, data=payload_add_game)
                     break
 
+def get_yearpublished_from_id(id):
+    thing_url = f'{BGG_API}thing'
+    params = {'id': id}
+
+    response = requests.get(thing_url, params=params)
+    while response.status_code == 202:
+        time.sleep(3)
+        response = requests.get(thing_url, params=params)
+
+    if response.status_code == 200:
+        root = ElementTree.fromstring(response.content)
+        return root.find("item").find("yearpublished").get("value")
+
 def get_bgg_plays(username):
     has_more = True
     page = 0
     plays = []
 
     today = datetime.today().strftime('%d/%m/%Y')
+
     min_date = input(f'Partidas a partir de [dd/mm/aaaa, padrão: {today}]: ')
 
     try:
@@ -129,12 +143,25 @@ def get_bgg_plays(username):
         print(f'\nData invalida, usando o padrão {today}')
         min_date = today
 
+    max_date = input(f'Partidas até [dd/mm/aaaa, padrão: {min_date}]: ')
+
+    try:
+        datetime.strptime(max_date, '%d/%m/%Y')
+    except ValueError:
+        print(f'\nData invalida, usando o padrão {min_date}')
+        max_date = min_date
+
     while (has_more):
         page += 1
 
         print(f'\nObtendo partidas do BGG, página {page}\n')
         plays_url = f'{BGG_API}plays'
-        params = {'username': username, 'page': page, 'mindate': datetime.strptime(min_date, '%d/%m/%Y').strftime('%Y-%m-%d') }
+        params = {
+            'username': username,
+            'page': page,
+            'mindate': datetime.strptime(min_date, '%d/%m/%Y').strftime('%Y-%m-%d'),
+            'maxdate': datetime.strptime(max_date, '%d/%m/%Y').strftime('%Y-%m-%d')
+        }
 
         response = requests.get(plays_url, params=params)
         while response.status_code == 202:
@@ -156,7 +183,9 @@ def get_bgg_plays(username):
                     length = play.get('length')
                     location = play.get('location')
 
-                    gameName = play.findall('item')[0].get('name')
+                    game = play.findall('item')[0]
+                    game_name = game.get('name')
+                    year_published = get_yearpublished_from_id(game.get('objectid'))
 
                     commentsEl = play.find('comments')
                     comments = commentsEl.text if commentsEl != None else None
@@ -173,7 +202,7 @@ def get_bgg_plays(username):
                     # sort players, me first
                     players.sort(key=lambda p: 100*(p[1] != username) + int(p[2]))
 
-                    plays.append((date, length, location, gameName, comments, players))
+                    plays.append((date, length, location, game_name, year_published, comments, players))
 
                 print(f'Total de partidas importadas: {len(plays)}\n')
 
@@ -199,18 +228,15 @@ def import_plays(session, plays, my_bgg_user, ludo_user_id):
         ludo_users = {}
 
     for bgg_play in plays:
-        (date, length, location, gameName, comments, players) = bgg_play
+        (date, length, location, game_name, year_published, comments, players) = bgg_play
 
-        params['nm_jogo'] = gameName
+        params['nm_jogo'] = game_name
         r = session.get(ludopedia_search_url, params=params)
         data = r.json()['data']
 
         if data:
             for item in data:
-                # TODO Check year published
-                #year_published = bgg_play[2]
-
-                if 1==1:#item['ano_publicacao'] == year_published:
+                if item['ano_publicacao'] == year_published:
                     id_jogo = item['id_jogo']
 
                     payload_add_play = {
