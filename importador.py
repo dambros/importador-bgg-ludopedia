@@ -200,7 +200,7 @@ def get_bgg_plays(username):
                         players.append((name, bgguser, startposition, score, win))
                     
                     # sort players, me first
-                    players.sort(key=lambda p: 100*(p[1] != username) + int(p[2]))
+                    players.sort(key=lambda p: (p[1] != username, p[2]))
 
                     plays.append((date, length, location, game_name, year_published, comments, players))
 
