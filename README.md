@@ -1,7 +1,6 @@
 ## Importador BGG - Ludopedia
 
-Script criado para facilitar a importação de uma coleção (jogos que possúi e lista de desejos) do site BoardGameGeek
-para Ludopedia.
+Script criado para facilitar a importação de coleção (jogos que possúi e lista de desejos) e partidas do site BoardGameGeek para Ludopedia.
 
 ### Como usar
 
