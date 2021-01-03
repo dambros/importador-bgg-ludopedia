@@ -84,7 +84,7 @@ def login_ludopedia(email, password):
                                   'fornecidas, abortando...')
         sys.exit(0)
 
-    user_re = re.search('id_usuario=(\d+)', r.text)
+    user_re = re.search(r'id_usuario=(\d+)', r.text)
     user_id = user_re.group(1) if user_re else None
 
     return (session, user_id)
