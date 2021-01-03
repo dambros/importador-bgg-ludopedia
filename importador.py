@@ -181,7 +181,7 @@ def get_bgg_plays(username):
         if response.status_code == 200:
             root = ElementTree.fromstring(response.content)
 
-            if root.text != None and root.text.strip() == 'Invalid object or user':
+            if root.text is not None and root.text.strip() == 'Invalid object or user':
                 print(colorama.Fore.RED + 'Usuário BGG inválido, abortando...')
                 sys.exit(0)
             else:
@@ -198,7 +198,7 @@ def get_bgg_plays(username):
                     year_published = get_yearpublished_from_id(game.get('objectid'))
 
                     comments_element = play.find('comments')
-                    comments = comments_element.text if comments_element != None else None
+                    comments = comments_element.text if comments_element is not None else None
 
                     players = []
                     for player in play.find('players').findall('player'):
