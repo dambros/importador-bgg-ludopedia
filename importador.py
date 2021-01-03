@@ -138,6 +138,7 @@ def get_yearpublished_from_id(id):
     if response.status_code == 200:
         root = ElementTree.fromstring(response.content)
         return root.find("item").find("yearpublished").get("value")
+    return None
 
 def get_bgg_plays(username):
     """Get all logged plays from a BGG user"""
