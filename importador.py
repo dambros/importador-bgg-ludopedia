@@ -86,7 +86,7 @@ def login_ludopedia(email, password):
 
     user_re = re.search('id_usuario=(\d+)', r.text)
     user_id = user_re.group(1) if user_re else None
-    
+
     return (session, user_id)
 
 def import_collection(session, collection):
@@ -196,7 +196,7 @@ def get_bgg_plays(username):
                         score = player.get('score')
                         win = player.get('win')
                         players.append((name, bgguser, startposition, score, win))
-                    
+
                     # sort players, me first
                     players.sort(key=lambda p: (p[1] != username, p[2]))
 
@@ -239,13 +239,13 @@ def import_plays(session, plays, my_bgg_user, ludo_user_id):
                 if item['ano_publicacao'] == year_published:
                     found = item
                     break
-            
+
             if not found:
                 print(f'Nenhum jogo encontrado no ano de lançamento: {game_name} {year_published}')
 
                 found = data[0]
                 print(f"Importando o primeiro resultado: {found['nm_jogo']} {found['ano_publicacao']}\n")
-            
+
             id_jogo = found['id_jogo']
 
             payload_add_play = {
