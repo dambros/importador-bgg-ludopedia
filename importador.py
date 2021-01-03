@@ -1,3 +1,7 @@
+"""
+Script to import data from BoardGameGeek into Ludopedia
+"""
+
 import sys
 import time
 from datetime import datetime
@@ -14,6 +18,7 @@ LUDOPEDIA_URL = 'https://www.ludopedia.com.br/'
 
 
 def start():
+    """ Process input from user and import accordingly """
     colorama.init()
     print(
         "\n\n--------------***Importador BGG - Ludopedia***--------------\n\n"
@@ -38,6 +43,7 @@ def start():
     input("Pressione ENTER para sair")
 
 def get_from_bgg(api_url, parameters):
+    """Successively attempts to get data from BGG given an API"""
     response = requests.get(api_url, params=parameters)
     while response.status_code == 202:
         time.sleep(3)
@@ -45,6 +51,7 @@ def get_from_bgg(api_url, parameters):
     return response
 
 def get_bgg_collection(username):
+    """Get all items in a BGG user colection"""
     print("Obtendo coleção do BGG...\n")
     collection_url = '{}{}'.format(BGG_API, 'collection')
     params = {'username': username}
@@ -72,6 +79,7 @@ def get_bgg_collection(username):
 
 
 def login_ludopedia(email, password):
+    """Logins into Ludopedia manually and returns the session and user_id"""
     print("Obtendo dados do Ludopedia...\n")
     login_url = '{}{}'.format(LUDOPEDIA_URL, 'login')
     payload = {'email': email, 'pass': password}
@@ -90,6 +98,7 @@ def login_ludopedia(email, password):
     return (session, user_id)
 
 def import_collection(session, collection):
+    """Imports a given collection into Ludopedia"""
     print("Importando coleção...\n")
     ludopedia_search_url = '{}{}'.format(LUDOPEDIA_URL,
                                          'classes/ajax/aj_search.php')
@@ -120,6 +129,7 @@ def import_collection(session, collection):
                     break
 
 def get_yearpublished_from_id(id):
+    """Get the year that a game was published"""
     thing_url = f'{BGG_API}thing'
     params = {'id': id}
 
@@ -130,6 +140,7 @@ def get_yearpublished_from_id(id):
         return root.find("item").find("yearpublished").get("value")
 
 def get_bgg_plays(username):
+    """Get all logged plays from a BGG user"""
     has_more = True
     page = 0
     plays = []
@@ -210,6 +221,7 @@ def get_bgg_plays(username):
     return plays
 
 def import_plays(session, plays, my_bgg_user, ludo_user_id):
+    """Import all logged plays into Ludopedia"""
     print("Importando partidas...\n")
     ludopedia_search_url = f'{LUDOPEDIA_URL}classes/ajax/aj_search.php'
     params = {'tipo': 'jogo', 'count': 'true', 'pagina': 1, 'qt_rows': 20}
