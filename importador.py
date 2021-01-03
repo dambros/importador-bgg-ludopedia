@@ -85,14 +85,14 @@ def login_ludopedia(email, password):
     payload = {'email': email, 'pass': password}
 
     session = requests.Session()
-    r = session.post(login_url, data=payload)
+    session_request = session.post(login_url, data=payload)
 
-    if 'senha incorretos' in r.text:
+    if 'senha incorretos' in session_request.text:
         print(colorama.Fore.RED + 'Não foi possível logar com as informações '
                                   'fornecidas, abortando...')
         sys.exit(0)
 
-    user_re = re.search(r'id_usuario=(\d+)', r.text)
+    user_re = re.search(r'id_usuario=(\d+)', session_request.text)
     user_id = user_re.group(1) if user_re else None
 
     return (session, user_id)
@@ -109,8 +109,8 @@ def import_collection(session, collection):
 
     for bgg_game in collection:
         params['nm_jogo'] = bgg_game[0]
-        r = session.get(ludopedia_search_url, params=params)
-        data = r.json()['data']
+        game_request = session.get(ludopedia_search_url, params=params)
+        data = game_request.json()['data']
 
         if data:
             for item in data:
@@ -128,10 +128,10 @@ def import_collection(session, collection):
                     session.post(ludopedia_add_game_url, data=payload_add_game)
                     break
 
-def get_yearpublished_from_id(id):
+def get_yearpublished_from_id(game_id):
     """Get the year that a game was published"""
     thing_url = f'{BGG_API}thing'
-    params = {'id': id}
+    params = {'id': game_id}
 
     response = get_from_bgg(thing_url, params)
 
@@ -197,8 +197,8 @@ def get_bgg_plays(username):
                     game_name = game.get('name')
                     year_published = get_yearpublished_from_id(game.get('objectid'))
 
-                    commentsEl = play.find('comments')
-                    comments = commentsEl.text if commentsEl != None else None
+                    comments_element = play.find('comments')
+                    comments = comments_element.text if comments_element != None else None
 
                     players = []
                     for player in play.find('players').findall('player'):
@@ -242,8 +242,8 @@ def import_plays(session, plays, my_bgg_user, ludo_user_id):
         (date, length, location, game_name, year_published, comments, players) = bgg_play
 
         params['nm_jogo'] = game_name
-        r = session.get(ludopedia_search_url, params=params)
-        data = r.json()['data']
+        game_request = session.get(ludopedia_search_url, params=params)
+        data = game_request.json()['data']
 
         if data:
             found = None
