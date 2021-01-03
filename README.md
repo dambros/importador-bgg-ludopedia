@@ -14,9 +14,11 @@ Script criado para facilitar a importação de coleção (jogos que possúi e li
 
 1. ```git clone https://github.com/dambros/importador-bgg-ludopedia.git```
 2. ```cd importador-bgg-ludopedia```
-3. ```pipenv install```
-4. ```python3 importador.py```
-5. Seguir as instruções na tela
+3. ```pip install pipenv```
+4. ```pipenv install```
+5. ```pipenv shell```
+6. ```python3 importador.py```
+7. Seguir as instruções na tela
 
 ### Limitações
 
