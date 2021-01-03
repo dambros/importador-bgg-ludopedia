@@ -39,7 +39,7 @@ def start():
         bgg_collection = get_bgg_collection(bgg_user)
         import_collection(session, bgg_collection)
 
-    print(colorama.Fore.GREEN + 'Importação finalizada com sucesso!\n\n')
+    print(f'{colorama.Fore.GREEN}Importação finalizada com sucesso!\n\n')
     input("Pressione ENTER para sair")
 
 def get_from_bgg(api_url, parameters):
@@ -63,7 +63,7 @@ def get_bgg_collection(username):
         root = ElementTree.fromstring(response.content)
 
         if root.tag == 'errors':
-            print(colorama.Fore.RED + 'Usuário BGG inválido, abortando...')
+            print(f'{colorama.Fore.RED}Usuário BGG inválido, abortando...')
             sys.exit(0)
         else:
             total_jogos = root.attrib['totalitems']
@@ -88,8 +88,8 @@ def login_ludopedia(email, password):
     session_request = session.post(login_url, data=payload)
 
     if 'senha incorretos' in session_request.text:
-        print(colorama.Fore.RED + 'Não foi possível logar com as informações '
-                                  'fornecidas, abortando...')
+        print(f'{colorama.Fore.RED}Não foi possível logar com as informações '
+              f'fornecidas, abortando...')
         sys.exit(0)
 
     user_re = re.search(r'id_usuario=(\d+)', session_request.text)
@@ -180,7 +180,7 @@ def get_bgg_plays(username):
             root = ElementTree.fromstring(response.content)
 
             if root.text is not None and root.text.strip() == 'Invalid object or user':
-                print(colorama.Fore.RED + 'Usuário BGG inválido, abortando...')
+                print(f'{colorama.Fore.RED}Usuário BGG inválido, abortando...')
                 sys.exit(0)
             else:
                 total_partidas = root.get('total')
