@@ -53,7 +53,7 @@ def get_from_bgg(api_url, parameters):
 def get_bgg_collection(username):
     """Get all items in a BGG user colection"""
     print("Obtendo coleção do BGG...\n")
-    collection_url = '{}{}'.format(BGG_API, 'collection')
+    collection_url = f'{BGG_API}collection'
     params = {'username': username}
 
     response = get_from_bgg(collection_url, params)
@@ -67,7 +67,7 @@ def get_bgg_collection(username):
             sys.exit(0)
         else:
             total_jogos = root.attrib['totalitems']
-            print('Total de jogos encontrado no BGG: {}\n'.format(total_jogos))
+            print(f'Total de jogos encontrado no BGG: {total_jogos}\n')
 
             for item in root.findall('item'):
                 name = item.find('name').text
@@ -81,7 +81,7 @@ def get_bgg_collection(username):
 def login_ludopedia(email, password):
     """Logins into Ludopedia manually and returns the session and user_id"""
     print("Obtendo dados do Ludopedia...\n")
-    login_url = '{}{}'.format(LUDOPEDIA_URL, 'login')
+    login_url = f'{LUDOPEDIA_URL}login'
     payload = {'email': email, 'pass': password}
 
     session = requests.Session()
@@ -100,12 +100,10 @@ def login_ludopedia(email, password):
 def import_collection(session, collection):
     """Imports a given collection into Ludopedia"""
     print("Importando coleção...\n")
-    ludopedia_search_url = '{}{}'.format(LUDOPEDIA_URL,
-                                         'classes/ajax/aj_search.php')
+    ludopedia_search_url = f'{LUDOPEDIA_URL}classes/ajax/aj_search.php'
     params = {'tipo': 'jogo', 'count': 'true', 'pagina': 1, 'qt_rows': 20}
 
-    ludopedia_add_game_url = '{}{}'.format(LUDOPEDIA_URL,
-                                           'classes/jogo_usuario_ajax.php')
+    ludopedia_add_game_url = f'{LUDOPEDIA_URL}classes/jogo_usuario_ajax.php'
 
     for bgg_game in collection:
         params['nm_jogo'] = bgg_game[0]
