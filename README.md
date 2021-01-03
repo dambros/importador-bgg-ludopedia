@@ -10,7 +10,7 @@ Script criado para facilitar a importação de coleção (jogos que possúi e li
 2. Executar o arquivo chamado ```importador``` 
 3. Seguir as instruções na tela
 
-#### Usuários avançados/Linux
+#### Usuários avançados
 
 1. ```git clone https://github.com/dambros/importador-bgg-ludopedia.git```
 2. ```cd importador-bgg-ludopedia```
