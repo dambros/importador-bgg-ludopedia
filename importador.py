@@ -21,17 +21,17 @@ def start():
         "dados do BGG para a Ludopedia\n\n")
 
     bgg_user = input("Username BGG: ")
+
     ludopedia_email = input("Email Ludopedia: ")
     ludopedia_pass = input("Password Ludopedia: ")
-    option = input("Importar (1) Coleção  (2) Partidas [Padrão: 1]: ")
+    (session, ludo_user_id) = login_ludopedia(ludopedia_email, ludopedia_pass)
 
+    option = input("Importar (1) Coleção  (2) Partidas [Padrão: 1]: ")
     if (option == '2'):
         bgg_plays = get_bgg_plays(bgg_user)
-        (session, ludo_user_id) = login_ludopedia(ludopedia_email, ludopedia_pass)
         import_plays(session, bgg_plays, bgg_user, ludo_user_id)
     else:
         bgg_collection = get_bgg_collection(bgg_user)
-        (session, ) = login_ludopedia(ludopedia_email, ludopedia_pass)
         import_collection(session, bgg_collection)
 
     print(colorama.Fore.GREEN + 'Importação finalizada com sucesso!\n\n')
