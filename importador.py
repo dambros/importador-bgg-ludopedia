@@ -37,15 +37,19 @@ def start():
     print(colorama.Fore.GREEN + 'Importação finalizada com sucesso!\n\n')
     input("Pressione ENTER para sair")
 
+def get_from_bgg(api_url, parameters):
+    response = requests.get(api_url, params=parameters)
+    while response.status_code == 202:
+        time.sleep(3)
+        response = requests.get(api_url, params=parameters)
+    return response
+
 def get_bgg_collection(username):
     print("Obtendo coleção do BGG...\n")
     collection_url = '{}{}'.format(BGG_API, 'collection')
     params = {'username': username}
 
-    response = requests.get(collection_url, params=params)
-    while response.status_code == 202:
-        time.sleep(3)
-        response = requests.get(collection_url, params=params)
+    response = get_from_bgg(collection_url, params)
 
     collection = []
     if response.status_code == 200:
@@ -119,10 +123,7 @@ def get_yearpublished_from_id(id):
     thing_url = f'{BGG_API}thing'
     params = {'id': id}
 
-    response = requests.get(thing_url, params=params)
-    while response.status_code == 202:
-        time.sleep(3)
-        response = requests.get(thing_url, params=params)
+    response = get_from_bgg(thing_url, params)
 
     if response.status_code == 200:
         root = ElementTree.fromstring(response.content)
@@ -163,10 +164,7 @@ def get_bgg_plays(username):
             'maxdate': datetime.strptime(max_date, '%d/%m/%Y').strftime('%Y-%m-%d')
         }
 
-        response = requests.get(plays_url, params=params)
-        while response.status_code == 202:
-            time.sleep(3)
-            response = requests.get(plays_url, params=params)
+        response = get_from_bgg(plays_url, params)
 
         if response.status_code == 200:
             root = ElementTree.fromstring(response.content)
