@@ -1,22 +1,24 @@
 ## Importador BGG - Ludopedia
 
-Script criado para facilitar a importação de coleção (jogos que possúi e lista de desejos) e partidas do site BoardGameGeek para Ludopedia.
+Script criado para facilitar a importação de coleção (jogos que possui e lista de desejos) e partidas do site [BoardGameGeek][1] para [Ludopedia][2].
 
 ### Como usar
 
 #### Usuários básicos
 
-1. Baixar e descompactar a versão correspondente ao seu sistema operacional dos [releases](https://github.com/dambros/importador-bgg-ludopedia/releases)
+1. Baixar e descompactar a versão correspondente ao seu sistema operacional dos [releases][3]
 2. Executar o arquivo chamado ```importador``` 
 3. Seguir as instruções na tela
 
-#### Usuários avançados/Linux
+#### Usuários avançados
 
 1. ```git clone https://github.com/dambros/importador-bgg-ludopedia.git```
 2. ```cd importador-bgg-ludopedia```
-3. ```pipenv install```
-4. ```python3 importador.py```
-5. Seguir as instruções na tela
+3. ```pip install pipenv```
+4. ```pipenv install```
+5. ```pipenv shell```
+6. ```python3 importador.py```
+7. Seguir as instruções na tela
 
 ### Limitações
 
@@ -30,4 +32,10 @@ Não tendo uma forma automática de identificar outros usuários do BGG na Ludop
 
 ### Problemas, dúvidas ou sugestões?
 
-Caso tenha qualquer tipo de dúvida, problema ou sugestão, fique a vontade em abrir uma [issue](https://github.com/dambros/importador-bgg-ludopedia/issues) ou deixar uma mensagem no [tópico oficial](https://ludopedia.com.br/topico/24305/importador-de-colecao-bgg-ludopedia) na Ludopedia que responderei o mais rápido possível.
+Caso tenha qualquer tipo de dúvida, problema ou sugestão, fique a vontade em abrir uma [issue][1] ou deixar uma mensagem no [tópico oficial][2] na Ludopedia que responderei o mais rápido possível.
+
+[1]: https://boardgamegeek.com/
+[2]: https://www.ludopedia.com.br/
+[3]: https://github.com/dambros/importador-bgg-ludopedia/releases
+[4]: https://github.com/dambros/importador-bgg-ludopedia/issues
+[5]: https://ludopedia.com.br/topico/24305/importador-de-colecao-bgg-ludopedia
