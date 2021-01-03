@@ -210,7 +210,8 @@ def get_bgg_plays(username):
                     # sort players, me first
                     players.sort(key=lambda p: (p[1] != username, p[2]))
 
-                    plays.append((date, length, location, game_name, year_published, comments, players))
+                    plays.append((date, length, location, game_name,
+                                  year_published, comments, players))
 
                 print(f'Total de partidas importadas: {len(plays)}\n')
 
@@ -255,7 +256,8 @@ def import_plays(session, plays, my_bgg_user, ludo_user_id):
                 print(f'Nenhum jogo encontrado no ano de lançamento: {game_name} {year_published}')
 
                 found = data[0]
-                print(f"Importando o primeiro resultado: {found['nm_jogo']} {found['ano_publicacao']}\n")
+                print(f"Importando o primeiro resultado: "
+                      f"{found['nm_jogo']} {found['ano_publicacao']}\n")
 
             id_jogo = found['id_jogo']
 
