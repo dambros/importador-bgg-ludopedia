@@ -1,3 +1,7 @@
+"""
+Script to import data from BoardGameGeek into Ludopedia
+"""
+
 import sys
 import time
 from datetime import datetime
@@ -14,6 +18,7 @@ LUDOPEDIA_URL = 'https://www.ludopedia.com.br/'
 
 
 def start():
+    """ Process input from user and import accordingly """
     colorama.init()
     print(
         "\n\n--------------***Importador BGG - Ludopedia***--------------\n\n"
@@ -21,42 +26,48 @@ def start():
         "dados do BGG para a Ludopedia\n\n")
 
     bgg_user = input("Username BGG: ")
+
     ludopedia_email = input("Email Ludopedia: ")
     ludopedia_pass = input("Password Ludopedia: ")
-    option = input("Importar (1) Coleção  (2) Partidas [Padrão: 1]: ")
+    (session, ludo_user_id) = login_ludopedia(ludopedia_email, ludopedia_pass)
 
-    if (option == '2'):
+    option = input("Importar (1) Coleção  (2) Partidas [Padrão: 1]: ")
+    if option == '2':
         bgg_plays = get_bgg_plays(bgg_user)
-        (session, ludo_user_id) = login_ludopedia(ludopedia_email, ludopedia_pass)
         import_plays(session, bgg_plays, bgg_user, ludo_user_id)
     else:
         bgg_collection = get_bgg_collection(bgg_user)
-        (session, ) = login_ludopedia(ludopedia_email, ludopedia_pass)
         import_collection(session, bgg_collection)
 
-    print(colorama.Fore.GREEN + 'Importação finalizada com sucesso!\n\n')
+    print(f'{colorama.Fore.GREEN}Importação finalizada com sucesso!\n\n')
     input("Pressione ENTER para sair")
 
-def get_bgg_collection(username):
-    print("Obtendo coleção do BGG...\n")
-    collection_url = '{}{}'.format(BGG_API, 'collection')
-    params = {'username': username}
-
-    response = requests.get(collection_url, params=params)
+def get_from_bgg(api_url, parameters):
+    """Successively attempts to get data from BGG given an API"""
+    response = requests.get(api_url, params=parameters)
     while response.status_code == 202:
         time.sleep(3)
-        response = requests.get(collection_url, params=params)
+        response = requests.get(api_url, params=parameters)
+    return response
+
+def get_bgg_collection(username):
+    """Get all items in a BGG user colection"""
+    print("Obtendo coleção do BGG...\n")
+    collection_url = f'{BGG_API}collection'
+    params = {'username': username}
+
+    response = get_from_bgg(collection_url, params)
 
     collection = []
     if response.status_code == 200:
         root = ElementTree.fromstring(response.content)
 
         if root.tag == 'errors':
-            print(colorama.Fore.RED + 'Usuário BGG inválido, abortando...')
+            print(f'{colorama.Fore.RED}Usuário BGG inválido, abortando...')
             sys.exit(0)
         else:
             total_jogos = root.attrib['totalitems']
-            print('Total de jogos encontrado no BGG: {}\n'.format(total_jogos))
+            print(f'Total de jogos encontrado no BGG: {total_jogos}\n')
 
             for item in root.findall('item'):
                 name = item.find('name').text
@@ -68,36 +79,36 @@ def get_bgg_collection(username):
 
 
 def login_ludopedia(email, password):
+    """Logins into Ludopedia manually and returns the session and user_id"""
     print("Obtendo dados do Ludopedia...\n")
-    login_url = '{}{}'.format(LUDOPEDIA_URL, 'login')
+    login_url = f'{LUDOPEDIA_URL}login'
     payload = {'email': email, 'pass': password}
 
     session = requests.Session()
-    r = session.post(login_url, data=payload)
+    session_request = session.post(login_url, data=payload)
 
-    if 'senha incorretos' in r.text:
-        print(colorama.Fore.RED + 'Não foi possível logar com as informações '
-                                  'fornecidas, abortando...')
+    if 'senha incorretos' in session_request.text:
+        print(f'{colorama.Fore.RED}Não foi possível logar com as informações '
+              f'fornecidas, abortando...')
         sys.exit(0)
 
-    user_re = re.search('id_usuario=(\d+)', r.text)
+    user_re = re.search(r'id_usuario=(\d+)', session_request.text)
     user_id = user_re.group(1) if user_re else None
-    
+
     return (session, user_id)
 
 def import_collection(session, collection):
+    """Imports a given collection into Ludopedia"""
     print("Importando coleção...\n")
-    ludopedia_search_url = '{}{}'.format(LUDOPEDIA_URL,
-                                         'classes/ajax/aj_search.php')
+    ludopedia_search_url = f'{LUDOPEDIA_URL}classes/ajax/aj_search.php'
     params = {'tipo': 'jogo', 'count': 'true', 'pagina': 1, 'qt_rows': 20}
 
-    ludopedia_add_game_url = '{}{}'.format(LUDOPEDIA_URL,
-                                           'classes/jogo_usuario_ajax.php')
+    ludopedia_add_game_url = f'{LUDOPEDIA_URL}classes/jogo_usuario_ajax.php'
 
     for bgg_game in collection:
         params['nm_jogo'] = bgg_game[0]
-        r = session.get(ludopedia_search_url, params=params)
-        data = r.json()['data']
+        game_request = session.get(ludopedia_search_url, params=params)
+        data = game_request.json()['data']
 
         if data:
             for item in data:
@@ -115,20 +126,20 @@ def import_collection(session, collection):
                     session.post(ludopedia_add_game_url, data=payload_add_game)
                     break
 
-def get_yearpublished_from_id(id):
+def get_yearpublished_from_id(game_id):
+    """Get the year that a game was published"""
     thing_url = f'{BGG_API}thing'
-    params = {'id': id}
+    params = {'id': game_id}
 
-    response = requests.get(thing_url, params=params)
-    while response.status_code == 202:
-        time.sleep(3)
-        response = requests.get(thing_url, params=params)
+    response = get_from_bgg(thing_url, params)
 
     if response.status_code == 200:
         root = ElementTree.fromstring(response.content)
         return root.find("item").find("yearpublished").get("value")
+    return None
 
 def get_bgg_plays(username):
+    """Get all logged plays from a BGG user"""
     has_more = True
     page = 0
     plays = []
@@ -151,7 +162,7 @@ def get_bgg_plays(username):
         print(f'\nData invalida, usando o padrão {min_date}')
         max_date = min_date
 
-    while (has_more):
+    while has_more:
         page += 1
 
         print(f'\nObtendo partidas do BGG, página {page}\n')
@@ -163,16 +174,13 @@ def get_bgg_plays(username):
             'maxdate': datetime.strptime(max_date, '%d/%m/%Y').strftime('%Y-%m-%d')
         }
 
-        response = requests.get(plays_url, params=params)
-        while response.status_code == 202:
-            time.sleep(3)
-            response = requests.get(plays_url, params=params)
+        response = get_from_bgg(plays_url, params)
 
         if response.status_code == 200:
             root = ElementTree.fromstring(response.content)
 
-            if root.text != None and root.text.strip() == 'Invalid object or user':
-                print(colorama.Fore.RED + 'Usuário BGG inválido, abortando...')
+            if root.text is not None and root.text.strip() == 'Invalid object or user':
+                print(f'{colorama.Fore.RED}Usuário BGG inválido, abortando...')
                 sys.exit(0)
             else:
                 total_partidas = root.get('total')
@@ -187,8 +195,8 @@ def get_bgg_plays(username):
                     game_name = game.get('name')
                     year_published = get_yearpublished_from_id(game.get('objectid'))
 
-                    commentsEl = play.find('comments')
-                    comments = commentsEl.text if commentsEl != None else None
+                    comments_element = play.find('comments')
+                    comments = comments_element.text if comments_element is not None else None
 
                     players = []
                     for player in play.find('players').findall('player'):
@@ -198,20 +206,22 @@ def get_bgg_plays(username):
                         score = player.get('score')
                         win = player.get('win')
                         players.append((name, bgguser, startposition, score, win))
-                    
+
                     # sort players, me first
                     players.sort(key=lambda p: (p[1] != username, p[2]))
 
-                    plays.append((date, length, location, game_name, year_published, comments, players))
+                    plays.append((date, length, location, game_name,
+                                  year_published, comments, players))
 
                 print(f'Total de partidas importadas: {len(plays)}\n')
 
-                if (len(plays) >= int(total_partidas)):
+                if len(plays) >= int(total_partidas):
                     has_more = False
 
     return plays
 
 def import_plays(session, plays, my_bgg_user, ludo_user_id):
+    """Import all logged plays into Ludopedia"""
     print("Importando partidas...\n")
     ludopedia_search_url = f'{LUDOPEDIA_URL}classes/ajax/aj_search.php'
     params = {'tipo': 'jogo', 'count': 'true', 'pagina': 1, 'qt_rows': 20}
@@ -228,11 +238,12 @@ def import_plays(session, plays, my_bgg_user, ludo_user_id):
         ludo_users = {}
 
     for bgg_play in plays:
-        (date, length, location, game_name, year_published, comments, players) = bgg_play
+        # Location is not available in Ludopedia so it is not used here
+        (date, length, _, game_name, year_published, comments, players) = bgg_play
 
         params['nm_jogo'] = game_name
-        r = session.get(ludopedia_search_url, params=params)
-        data = r.json()['data']
+        game_request = session.get(ludopedia_search_url, params=params)
+        data = game_request.json()['data']
 
         if data:
             found = None
@@ -241,13 +252,14 @@ def import_plays(session, plays, my_bgg_user, ludo_user_id):
                 if item['ano_publicacao'] == year_published:
                     found = item
                     break
-            
-            if (not found):
+
+            if not found:
                 print(f'Nenhum jogo encontrado no ano de lançamento: {game_name} {year_published}')
 
                 found = data[0]
-                print(f"Importando o primeiro resultado: {found['nm_jogo']} {found['ano_publicacao']}\n")
-            
+                print(f"Importando o primeiro resultado: "
+                      f"{found['nm_jogo']} {found['ano_publicacao']}\n")
+
             id_jogo = found['id_jogo']
 
             payload_add_play = {
