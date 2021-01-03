@@ -27,7 +27,7 @@ def start():
     (session, ludo_user_id) = login_ludopedia(ludopedia_email, ludopedia_pass)
 
     option = input("Importar (1) Coleção  (2) Partidas [Padrão: 1]: ")
-    if (option == '2'):
+    if option == '2':
         bgg_plays = get_bgg_plays(bgg_user)
         import_plays(session, bgg_plays, bgg_user, ludo_user_id)
     else:
@@ -152,7 +152,7 @@ def get_bgg_plays(username):
         print(f'\nData invalida, usando o padrão {min_date}')
         max_date = min_date
 
-    while (has_more):
+    while has_more:
         page += 1
 
         print(f'\nObtendo partidas do BGG, página {page}\n')
@@ -204,7 +204,7 @@ def get_bgg_plays(username):
 
                 print(f'Total de partidas importadas: {len(plays)}\n')
 
-                if (len(plays) >= int(total_partidas)):
+                if len(plays) >= int(total_partidas):
                     has_more = False
 
     return plays
@@ -240,7 +240,7 @@ def import_plays(session, plays, my_bgg_user, ludo_user_id):
                     found = item
                     break
             
-            if (not found):
+            if not found:
                 print(f'Nenhum jogo encontrado no ano de lançamento: {game_name} {year_published}')
 
                 found = data[0]
