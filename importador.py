@@ -238,7 +238,8 @@ def import_plays(session, plays, my_bgg_user, ludo_user_id):
         ludo_users = {}
 
     for bgg_play in plays:
-        (date, length, location, game_name, year_published, comments, players) = bgg_play
+        # Location is not available in Ludopedia so it is not used here
+        (date, length, _, game_name, year_published, comments, players) = bgg_play
 
         params['nm_jogo'] = game_name
         game_request = session.get(ludopedia_search_url, params=params)
