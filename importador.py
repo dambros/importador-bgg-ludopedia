@@ -138,29 +138,24 @@ def get_yearpublished_from_id(game_id):
         return root.find("item").find("yearpublished").get("value")
     return None
 
+def get_date_from_user(text, default_date):
+    """Ask user for a date on the format dd/mm/aaaa"""
+    date = input(f'Partidas {text} [dd/mm/aaaa, padrão: {default_date}]: ')
+    try:
+        datetime.strptime(date, '%d/%m/%Y')
+    except ValueError:
+        print(f'\nData invalida, usando o padrão {default_date}')
+        date = default_date
+    return date
+
 def get_bgg_plays(username):
     """Get all logged plays from a BGG user"""
     has_more = True
     page = 0
     plays = []
 
-    today = datetime.today().strftime('%d/%m/%Y')
-
-    min_date = input(f'Partidas a partir de [dd/mm/aaaa, padrão: {today}]: ')
-
-    try:
-        datetime.strptime(min_date, '%d/%m/%Y')
-    except ValueError:
-        print(f'\nData invalida, usando o padrão {today}')
-        min_date = today
-
-    max_date = input(f'Partidas até [dd/mm/aaaa, padrão: {min_date}]: ')
-
-    try:
-        datetime.strptime(max_date, '%d/%m/%Y')
-    except ValueError:
-        print(f'\nData invalida, usando o padrão {min_date}')
-        max_date = min_date
+    min_date = get_date_from_user(f'a partir de', datetime.today().strftime('%d/%m/%Y'))
+    max_date = get_date_from_user(f'até', min_date)
 
     while has_more:
         page += 1
