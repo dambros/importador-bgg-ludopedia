@@ -150,6 +150,18 @@ def get_date_from_user(text, default_date):
         date = default_date
     return date
 
+def get_players_from_play(play):
+    """Returns a list of players that took part in a game"""
+    players = []
+    for player in play.find('players').findall('player'):
+        name = player.get('name')
+        bgguser = player.get('username')
+        startposition = player.get('startposition')
+        score = player.get('score')
+        win = player.get('win')
+        players.append((name, bgguser, startposition, score, win))
+    return players
+
 def get_bgg_plays(username):
     """Get all logged plays from a BGG user"""
 
@@ -197,14 +209,7 @@ def get_bgg_plays(username):
                     comments_element = play.find('comments')
                     comments = comments_element.text if comments_element is not None else None
 
-                    players = []
-                    for player in play.find('players').findall('player'):
-                        name = player.get('name')
-                        bgguser = player.get('username')
-                        startposition = player.get('startposition')
-                        score = player.get('score')
-                        win = player.get('win')
-                        players.append((name, bgguser, startposition, score, win))
+                    players = get_players_from_play(play)
 
                     # sort players, me first
                     players.sort(key=lambda p: (p[1] != username, p[2]))
