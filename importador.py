@@ -5,6 +5,7 @@ Script to import data from BoardGameGeek into Ludopedia
 import sys
 import time
 from datetime import datetime
+from math import ceil
 import re
 from xml.etree import ElementTree
 from configparser import ConfigParser
@@ -15,6 +16,7 @@ import requests
 
 BGG_API = 'https://www.boardgamegeek.com/xmlapi2/'
 LUDOPEDIA_URL = 'https://www.ludopedia.com.br/'
+BGG_PLAYS_PER_PAGE = int(100)
 
 
 def start():
@@ -156,6 +158,7 @@ def get_bgg_plays(username):
 
     has_more = True
     page = 1
+    total_pages = 1
     plays = []
     while has_more:
         plays_url = f'{BGG_API}plays'
@@ -177,9 +180,10 @@ def get_bgg_plays(username):
             else:
                 if page == 1:
                     total_partidas = root.get('total')
+                    total_pages = ceil(int(total_partidas)/BGG_PLAYS_PER_PAGE)
                     print(f'Total de partidas encontradas no BGG: {total_partidas}\n')
 
-                print(f'\nObtendo partidas do BGG, página {page}\n')
+                print(f'Obtendo partidas do BGG, página {page}/{total_pages}')
 
                 for play in root.findall('play'):
                     date = play.get('date')
