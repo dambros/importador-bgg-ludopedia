@@ -10,6 +10,7 @@ import re
 from xml.etree import ElementTree
 from configparser import ConfigParser
 from itertools import chain
+from typing import NamedTuple
 
 import colorama
 import requests
@@ -18,6 +19,13 @@ BGG_API = 'https://www.boardgamegeek.com/xmlapi2/'
 LUDOPEDIA_URL = 'https://www.ludopedia.com.br/'
 BGG_PLAYS_PER_PAGE = int(100)
 
+class Player(NamedTuple):
+    """Represents a player in a BGG logged play"""
+    name: str
+    bgg_user: str
+    start_position: str
+    score: str
+    win: bool
 
 def start():
     """ Process input from user and import accordingly """
@@ -154,12 +162,13 @@ def get_players_from_play(play):
     """Returns a list of players that took part in a game"""
     players = []
     for player in play.find('players').findall('player'):
-        name = player.get('name')
-        bgguser = player.get('username')
-        startposition = player.get('startposition')
-        score = player.get('score')
-        win = player.get('win')
-        players.append((name, bgguser, startposition, score, win))
+        players.append(Player(
+            name=player.get('name'),
+            bgg_user=player.get('username'),
+            start_position=player.get('startposition'),
+            score=player.get('score'),
+            win=player.get('win')
+        ))
     return players
 
 def get_bgg_plays(username):
@@ -277,12 +286,12 @@ def import_plays(session, plays, my_bgg_user, ludo_user_id):
                 'descricao': comments,
 
                 # (name, bgguser, startposition, score, win)
-                'id_partida_jogador[]': map(lambda p: 0 if my_bgg_user == p[1] else '', players),
-                'id_usuario[]': map(lambda p: ludo_user_id if my_bgg_user == p[1] else ludo_users.get(p[1], ''), players),
-                'nome[]': map(lambda p: p[0], players),
-                'fl_vencedor[]': map(lambda p: p[4], players),
-                'vl_pontos[]': map(lambda p: p[3], players),
-                'observacao[]': map(lambda p: f'Jogador {p[2]}', players)
+                'id_partida_jogador[]': map(lambda p: 0 if my_bgg_user == p.bgg_user else '', players),
+                'id_usuario[]': map(lambda p: ludo_user_id if my_bgg_user == p.bgg_user else ludo_users.get(p.bgg_user, ''), players),
+                'nome[]': map(lambda p: p.name, players),
+                'fl_vencedor[]': map(lambda p: p.win, players),
+                'vl_pontos[]': map(lambda p: p.score, players),
+                'observacao[]': map(lambda p: f'Jogador {p.start_position}', players)
             }
             session.post(ludopedia_add_play_url, data=payload_add_play)
 
