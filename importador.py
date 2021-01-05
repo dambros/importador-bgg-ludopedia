@@ -150,17 +150,14 @@ def get_date_from_user(text, default_date):
 
 def get_bgg_plays(username):
     """Get all logged plays from a BGG user"""
-    has_more = True
-    page = 0
-    plays = []
 
     min_date = get_date_from_user(f'a partir de', datetime.today().strftime('%d/%m/%Y'))
     max_date = get_date_from_user(f'até', min_date)
 
+    has_more = True
+    page = 1
+    plays = []
     while has_more:
-        page += 1
-
-        print(f'\nObtendo partidas do BGG, página {page}\n')
         plays_url = f'{BGG_API}plays'
         params = {
             'username': username,
@@ -178,8 +175,11 @@ def get_bgg_plays(username):
                 print(f'{colorama.Fore.RED}Usuário BGG inválido, abortando...')
                 sys.exit(0)
             else:
-                total_partidas = root.get('total')
-                print(f'Total de partidas encontradas no BGG: {total_partidas}\n')
+                if page == 1:
+                    total_partidas = root.get('total')
+                    print(f'Total de partidas encontradas no BGG: {total_partidas}\n')
+
+                print(f'\nObtendo partidas do BGG, página {page}\n')
 
                 for play in root.findall('play'):
                     date = play.get('date')
@@ -212,6 +212,8 @@ def get_bgg_plays(username):
 
                 if len(plays) >= int(total_partidas):
                     has_more = False
+                else:
+                    page += 1
 
     return plays
 
