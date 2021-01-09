@@ -24,6 +24,7 @@ class Player(NamedTuple):
     name: str
     bgg_user: str
     start_position: str
+    color: str
     score: str
     win: bool
 
@@ -176,6 +177,7 @@ def get_players_from_play(play):
             name=player.get('name'),
             bgg_user=player.get('username'),
             start_position=player.get('startposition'),
+            color=player.get('color'),
             score=player.get('score'),
             win=player.get('win')
         ))
@@ -303,7 +305,7 @@ def import_plays(session, plays, my_bgg_user, ludo_user_id):
                 'nome[]': map(lambda p: p.name, bgg_play.players),
                 'fl_vencedor[]': map(lambda p: p.win, bgg_play.players),
                 'vl_pontos[]': map(lambda p: p.score, bgg_play.players),
-                'observacao[]': map(lambda p: f'Jogador {p.start_position}', bgg_play.players)
+                'observacao[]': map(lambda p: f'Jogador {p.start_position} - Cor {p.color}', bgg_play.players)
             }
             session.post(ludopedia_add_play_url, data=payload_add_play)
 
