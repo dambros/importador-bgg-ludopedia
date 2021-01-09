@@ -171,6 +171,26 @@ def get_players_from_play(play):
         ))
     return players
 
+def parse_play(play, username):
+    """Given an BGG xml play, return a tuple with relevant play data"""
+    date = play.get('date')
+    length = play.get('length')
+    location = play.get('location')
+
+    game = play.findall('item')[0]
+    game_name = game.get('name')
+    year_published = get_yearpublished_from_id(game.get('objectid'))
+
+    comments_element = play.find('comments')
+    comments = comments_element.text if comments_element is not None else None
+
+    players = get_players_from_play(play)
+
+    # sort players, me first
+    players.sort(key=lambda p: (p[1] != username, p[2]))
+
+    return (date, length, location, game_name, year_published, comments, players)
+
 def get_bgg_plays(username):
     """Get all logged plays from a BGG user"""
 
@@ -207,22 +227,7 @@ def get_bgg_plays(username):
                 print(f'Obtendo partidas do BGG, página {page}/{total_pages}')
 
                 for play in root.findall('play'):
-                    date = play.get('date')
-                    length = play.get('length')
-                    location = play.get('location')
-
-                    game = play.findall('item')[0]
-                    game_name = game.get('name')
-                    year_published = get_yearpublished_from_id(game.get('objectid'))
-
-                    comments_element = play.find('comments')
-                    comments = comments_element.text if comments_element is not None else None
-
-                    players = get_players_from_play(play)
-
-                    # sort players, me first
-                    players.sort(key=lambda p: (p[1] != username, p[2]))
-
+                    (date, length, location, game_name, year_published, comments, players) = parse_play(play, username)
                     plays.append((date, length, location, game_name,
                                   year_published, comments, players))
 
