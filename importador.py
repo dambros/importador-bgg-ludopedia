@@ -10,7 +10,7 @@ import re
 from xml.etree import ElementTree
 from configparser import ConfigParser
 from itertools import chain
-from typing import NamedTuple
+from typing import List, NamedTuple
 
 import colorama
 import requests
@@ -26,6 +26,16 @@ class Player(NamedTuple):
     start_position: str
     score: str
     win: bool
+
+class Play(NamedTuple):
+    """Represents a logged BGG play"""
+    date: str
+    length: int
+    location: str
+    game_name: str
+    year_published: int
+    comments: str
+    players: List[Player]
 
 def start():
     """ Process input from user and import accordingly """
@@ -173,23 +183,22 @@ def get_players_from_play(play):
 
 def parse_play(play, username):
     """Given an BGG xml play, return a tuple with relevant play data"""
-    date = play.get('date')
-    length = play.get('length')
-    location = play.get('location')
-
     game = play.findall('item')[0]
-    game_name = game.get('name')
-    year_published = get_yearpublished_from_id(game.get('objectid'))
-
     comments_element = play.find('comments')
-    comments = comments_element.text if comments_element is not None else None
-
     players = get_players_from_play(play)
 
     # sort players, me first
     players.sort(key=lambda p: (p[1] != username, p[2]))
 
-    return (date, length, location, game_name, year_published, comments, players)
+    return Play(
+        date=play.get('date'),
+        length=play.get('length'),
+        location=play.get('location'),
+        game_name=game.get('name'),
+        year_published=get_yearpublished_from_id(game.get('objectid')),
+        comments=comments_element.text if comments_element is not None else None,
+        players=players,
+    )
 
 def get_bgg_plays(username):
     """Get all logged plays from a BGG user"""
@@ -226,10 +235,7 @@ def get_bgg_plays(username):
 
                 print(f'Obtendo partidas do BGG, página {page}/{total_pages}')
 
-                for play in root.findall('play'):
-                    (date, length, location, game_name, year_published, comments, players) = parse_play(play, username)
-                    plays.append((date, length, location, game_name,
-                                  year_published, comments, players))
+                plays.extend(parse_play(play, username) for play in root.findall('play'))
 
                 print(f'Total de partidas importadas: {len(plays)}\n')
 
@@ -258,10 +264,7 @@ def import_plays(session, plays, my_bgg_user, ludo_user_id):
         ludo_users = {}
 
     for bgg_play in plays:
-        # Location is not available in Ludopedia so it is not used here
-        (date, length, _, game_name, year_published, comments, players) = bgg_play
-
-        params['nm_jogo'] = game_name
+        params['nm_jogo'] = bgg_play.game_name
         game_request = session.get(ludopedia_search_url, params=params)
         data = game_request.json()['data']
 
@@ -269,12 +272,13 @@ def import_plays(session, plays, my_bgg_user, ludo_user_id):
             found = None
 
             for item in data:
-                if item['ano_publicacao'] == year_published:
+                if item['ano_publicacao'] == bgg_play.year_published:
                     found = item
                     break
 
             if not found:
-                print(f'Nenhum jogo encontrado no ano de lançamento: {game_name} {year_published}')
+                print(f'Nenhum jogo encontrado no ano de lançamento:'
+                      f' {bgg_play.game_name} {bgg_play.year_published}')
 
                 found = data[0]
                 print(f"Importando o primeiro resultado: "
@@ -284,24 +288,24 @@ def import_plays(session, plays, my_bgg_user, ludo_user_id):
 
             payload_add_play = {
                 'id_jogo': id_jogo,
-                'dt_partida': datetime.strptime(date, '%Y-%m-%d').strftime('%d/%m/%Y'),
+                'dt_partida': datetime.strptime(bgg_play.date, '%Y-%m-%d').strftime('%d/%m/%Y'),
                 'qt_partidas': 1,
-                'duracao_h': int(int(length)/60),
-                'duracao_m': int(length)%60,
-                'descricao': comments,
+                'duracao_h': int(int(bgg_play.length)/60),
+                'duracao_m': int(bgg_play.length)%60,
+                'descricao': bgg_play.comments,
 
                 # (name, bgguser, startposition, score, win)
-                'id_partida_jogador[]': map(lambda p: 0 if my_bgg_user.lower() == p.bgg_user.lower() else '', players),
-                'id_usuario[]': map(lambda p: ludo_user_id if my_bgg_user.lower() == p.bgg_user.lower() else ludo_users.get(p.bgg_user, ''), players),
-                'nome[]': map(lambda p: p.name, players),
-                'fl_vencedor[]': map(lambda p: p.win, players),
-                'vl_pontos[]': map(lambda p: p.score, players),
-                'observacao[]': map(lambda p: f'Jogador {p.start_position}', players)
+                'id_partida_jogador[]': map(lambda p: 0 if my_bgg_user.lower() == p.bgg_user.lower() else '', bgg_play.players),
+                'id_usuario[]': map(lambda p: ludo_user_id if my_bgg_user.lower() == p.bgg_user.lower() else ludo_users.get(p.bgg_user, ''), bgg_play.players),
+                'nome[]': map(lambda p: p.name, bgg_play.players),
+                'fl_vencedor[]': map(lambda p: p.win, bgg_play.players),
+                'vl_pontos[]': map(lambda p: p.score, bgg_play.players),
+                'observacao[]': map(lambda p: f'Jogador {p.start_position}', bgg_play.players)
             }
             session.post(ludopedia_add_play_url, data=payload_add_play)
 
         else:
-            print(f'Jogo não encontrado na Ludopedia: {game_name}')
+            print(f'Jogo não encontrado na Ludopedia: {bgg_play.game_name}')
 
 if __name__ == "__main__":
     start()
