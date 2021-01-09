@@ -105,3 +105,4 @@ venv.bak/
 
 .DS_Store
 Pipfile.lock
+usuarios.txt
