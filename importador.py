@@ -246,6 +246,17 @@ def get_bgg_plays(username):
 
     return plays
 
+def get_bgg_to_ludo_users():
+    """Reads usuarios.txt file to map a bgg user to its corresponding ludopedia one"""
+    try:
+        parser = ConfigParser()
+        with open("usuarios.txt") as lines:
+            lines = chain(("[top]",), lines)
+            parser.read_file(lines)
+            return dict(parser['top'])
+    except FileNotFoundError:
+        return {}
+
 def import_plays(session, plays, my_bgg_user, ludo_user_id):
     """Import all logged plays into Ludopedia"""
     print("Importando partidas...\n")
@@ -253,15 +264,7 @@ def import_plays(session, plays, my_bgg_user, ludo_user_id):
     params = {'tipo': 'jogo', 'count': 'true', 'pagina': 1, 'qt_rows': 20}
 
     ludopedia_add_play_url = f'{LUDOPEDIA_URL}cadastra_partida'
-
-    try:
-        parser = ConfigParser()
-        with open("usuarios.txt") as lines:
-            lines = chain(("[top]",), lines)
-            parser.read_file(lines)
-            ludo_users = dict(parser['top'])
-    except FileNotFoundError:
-        ludo_users = {}
+    ludo_users = get_bgg_to_ludo_users()
 
     for bgg_play in plays:
         params['nm_jogo'] = bgg_play.game_name
