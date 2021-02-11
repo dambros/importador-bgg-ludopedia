@@ -20,11 +20,16 @@ Script criado para facilitar a importação de coleção (jogos que possui e lis
 6. ```python3 importador.py```
 7. Seguir as instruções na tela
 
+Para fazer release:
+1. ```pipenv shell```
+2. ```pyinstaller importador.spec --noconfirm --clean```
+3. Veja o executável na pasta `dist`
+
 ### Limitações
 
 Devido a forma como a Ludopedia está construída atualmente, não há disponível nenhuma API para comunicação com seu servidor. Sendo assim, não há tanto controle em como podemos fazer uma busca e inserção na base.
 
-A Ludopedia utiliza o BGG como insumo para sua base de dados, mas não possui nenhum local onde nos permita fazer uma busca utilizando o *id* do BGG. Isso quer dizer que as buscas são realizadas utilizando o *nome do jogo* e comparando se o *ano de lançamento* bate, por isso alguns jogos não serão adicionados ou pode ocorrer de serem adicionados ítens errados na coleção.
+A Ludopedia utiliza o BGG como insumo para sua base de dados, mas não possui nenhum local onde nos permita fazer uma busca utilizando o *id* do BGG. Isso quer dizer que as buscas são realizadas utilizando o *nome do jogo* e comparando se o *ano de lançamento* bate, por isso alguns jogos não serão adicionados ou pode ocorrer de serem adicionados ítens errados na coleção. Uma janela será exibida com as opções caso não haja correspondência exata.
 
 ### Marcando amigos na importação de partidas
 
