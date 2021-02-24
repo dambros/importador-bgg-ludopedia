@@ -33,7 +33,12 @@ A Ludopedia utiliza o BGG como insumo para sua base de dados, mas não possui ne
 
 ### Marcando amigos na importação de partidas
 
-Não tendo uma forma automática de identificar outros usuários do BGG na Ludopedia, para marcar amigos nas partidas, uma possibilidade é criar um arquivo `usuarios.txt` neste mesmo diretório, tendo como conteúdo um usuário por linha, no formato `nome_usuario_bgg=id_usuario_ludopedia`.
+Não tendo uma forma automática de identificar outros usuários do BGG na Ludopedia, para marcar amigos nas partidas, uma possibilidade é criar um arquivo `usuarios.txt` neste mesmo diretório, tendo como conteúdo um usuário por linha, no formato `nome_usuario_bgg=id_usuario_ludopedia` ou `nome_usuario_bgg=nome_usuario_ludopedia`. Exemplo:
+
+```
+fulano=ciclano
+beltrano=12345
+```
 
 ### Problemas, dúvidas ou sugestões?
 

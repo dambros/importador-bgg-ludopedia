@@ -35,7 +35,10 @@ LUDOPEDIA_URL = 'https://www.ludopedia.com.br/'
 LUDOPEDIA_ADD_GAME_URL = f'{LUDOPEDIA_URL}classes/jogo_usuario_ajax.php'
 LUDOPEDIA_ADD_PLAY_URL = f'{LUDOPEDIA_URL}cadastra_partida'
 LUDOPEDIA_LOGIN_URL = f'{LUDOPEDIA_URL}login'
+LUDOPEDIA_PLAYS_URL = f'{LUDOPEDIA_URL}partidas?id_usuario='
 LUDOPEDIA_SEARCH_URL = f'{LUDOPEDIA_URL}classes/ajax/aj_search.php'
+LUDOPEDIA_USER_URL = f'{LUDOPEDIA_URL}usuario/'
+LUDOPEDIA_USER_ID_REGEX = re.escape(LUDOPEDIA_PLAYS_URL) + r'(\d+)'
 LUDOPEDIA_VIEW_PLAY_URL = f'{LUDOPEDIA_URL}partida?id_partida='
 LUDOPEDIA_VIEW_PLAY_REGEX = re.escape(LUDOPEDIA_VIEW_PLAY_URL) + r'(\d+)'
 
@@ -237,7 +240,10 @@ class Importador(QWidget):
 
     def post_plays(self, session, plays, bgg_user, ludo_user_id):
         """Receives plays from the Play Fetched thread and start the Ludopedia Logger"""
-        self.worker = LudopediaPlayLogger(session, plays, bgg_user, ludo_user_id)
+        user_map = self.get_bgg_to_ludo_users()
+        if bgg_user not in user_map:
+            user_map[bgg_user] = ludo_user_id
+        self.worker = LudopediaPlayLogger(session, plays, bgg_user, user_map)
         self.worker.request_search.connect(self.request_search_and_show_alternatives,
                                            Qt.BlockingQueuedConnection)
         self.worker.request_alternative.connect(self.request_alternative,
@@ -253,7 +259,7 @@ class Importador(QWidget):
         """Slot to show user map from bgg to ludopedia"""
         user_map_dialog = QDialog(self)
         user_map_dialog.setModal(True)
-        bgg_to_ludo = get_bgg_to_ludo_users()
+        bgg_to_ludo = self.get_bgg_to_ludo_users()
         user_list = [f'{key} -> {value}' for key, value in bgg_to_ludo.items()]
         list_widget = QListWidget(user_map_dialog)
         list_widget.addItems(user_list)
@@ -320,6 +326,33 @@ class Importador(QWidget):
         """Request an alternative from user and emit choice"""
         alternative = self.show_alternatives_dialog(bgg_play, data)
         self.alternative_chosen.emit(alternative)
+
+    def get_bgg_to_ludo_users(self):
+        """Reads usuarios.txt file to map a bgg user to its corresponding ludopedia one"""
+        try:
+            parser = ConfigParser()
+            with open("usuarios.txt") as lines:
+                lines = chain(("[top]",), lines)
+                parser.read_file(lines)
+                bgg_to_ludo_user = dict(parser['top'])
+                bgg_to_ludo_user_id = dict()
+                for bgg_user, ludo_user in bgg_to_ludo_user.items():
+                    if ludo_user.isdigit():
+                        bgg_to_ludo_user_id[bgg_user] = ludo_user
+                        self.log_text(MessageType.DEBUG, f'Usuário do BGG "{bgg_user}" já mapeado'
+                                                         f' ao id ludopedia: {ludo_user}')
+                    else:
+                        ludo_user_id = get_ludo_user_id(ludo_user)
+                        if ludo_user_id:
+                            self.log_text(MessageType.DEBUG, f'{ludo_user_id} para {ludo_user}')
+                            bgg_to_ludo_user_id[bgg_user] = ludo_user_id
+                        else:
+                            self.log_text(MessageType.ERROR, f'Falha ao buscar id de usuario da'
+                                                             f' ludopedia para "{ludo_user}"')
+                return bgg_to_ludo_user_id
+        except FileNotFoundError:
+            self.log_error(MessageType.ERROR, 'Não foi possível encontrar o arquivo "usuarios.txt')
+            return {}
 
 def create_gui(icon):
     """Create and show the GUI Application"""
@@ -406,16 +439,15 @@ def parse_play(play, username):
         players=players,
     )
 
-def get_bgg_to_ludo_users():
-    """Reads usuarios.txt file to map a bgg user to its corresponding ludopedia one"""
-    try:
-        parser = ConfigParser()
-        with open("usuarios.txt") as lines:
-            lines = chain(("[top]",), lines)
-            parser.read_file(lines)
-            return dict(parser['top'])
-    except FileNotFoundError:
-        return {}
+def get_ludo_user_id(ludo_username):
+    """Returns the user id (number) for a given username in Ludopedia"""
+    session = requests.Session()
+    result = session.get(f'{LUDOPEDIA_USER_URL}/{ludo_username}')
+    match_id = re.search(LUDOPEDIA_USER_ID_REGEX, result.text)
+    if match_id:
+        # Return the user_id
+        return match_id.group(1)
+    return None
 
 def search_ludopedia_games(session, game_name):
     """Search for a given game in Ludopedia"""
@@ -591,12 +623,12 @@ class LudopediaPlayLogger(GenericWorker):
     request_search = Signal(object, object)
     request_alternative = Signal(object, object)
 
-    def __init__(self, session, plays, my_bgg_user, ludo_user_id):
+    def __init__(self, session, plays, my_bgg_user, user_map):
         super().__init__()
         self.session = session
         self.plays = plays
         self.my_bgg_user = my_bgg_user
-        self.ludo_user_id = ludo_user_id
+        self.user_map = user_map
         self.alternative = None
 
     def run_impl(self):
@@ -648,7 +680,6 @@ class LudopediaPlayLogger(GenericWorker):
         """Import all logged plays into Ludopedia"""
         self.post_generic('Importando partidas...')
 
-        ludo_users = get_bgg_to_ludo_users()
         mapped_games = dict()
         imported_plays = 0
 
@@ -668,7 +699,7 @@ class LudopediaPlayLogger(GenericWorker):
 
                     # (name, bgguser, startposition, score, win)
                     'id_partida_jogador[]': self.get_id_partida_jogador(players),
-                    'id_usuario[]': map(lambda p: self.get_id_usuario(p, ludo_users), players),
+                    'id_usuario[]': map(lambda p: get_id_usuario(p, self.user_map), players),
                     'nome[]': map(lambda p: p.name, players),
                     'fl_vencedor[]': map(lambda p: p.win, players),
                     'vl_pontos[]': map(lambda p: p.score, players),
@@ -691,11 +722,9 @@ class LudopediaPlayLogger(GenericWorker):
         """Get id_partida for every player on a play"""
         return map(lambda p: 0 if self.my_bgg_user.lower() == p.bgg_user.lower() else '', players)
 
-    def get_id_usuario(self, player, ludo_users):
-        """Get id_usuario for each player on a play"""
-        if self.my_bgg_user.lower() == player.bgg_user.lower():
-            return self.ludo_user_id
-        return ludo_users.get(player.bgg_user.lower(), '')
+def get_id_usuario(player, ludo_users):
+    """Get id_usuario for each player on a play"""
+    return ludo_users.get(player.bgg_user.lower(), '')
 
 def get_observacao_jogador(player):
     """Get extra information on a BGG player that can only be mapped to a note on Ludopedia"""
