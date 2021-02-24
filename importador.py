@@ -28,6 +28,7 @@ BGG_API = 'https://www.boardgamegeek.com/xmlapi2/'
 BGG_COLLECTION_API = f'{BGG_API}collection'
 BGG_PLAYS_API = f'{BGG_API}plays'
 BGG_THING_API = f'{BGG_API}thing'
+BGG_USER_API = f'{BGG_API}user'
 BGG_PLAYS_PER_PAGE = int(100)
 
 # Ludopedia constants
@@ -337,6 +338,11 @@ class Importador(QWidget):
                 bgg_to_ludo_user = dict(parser['top'])
                 bgg_to_ludo_user_id = dict()
                 for bgg_user, ludo_user in bgg_to_ludo_user.items():
+                    if is_invalid_bgg_user(bgg_user):
+                        self.log_text(MessageType.ERROR, f'Usuário do BGG "{bgg_user}" inválido'
+                                                         f' no mapa de usuários')
+                        continue
+
                     if ludo_user.isdigit():
                         bgg_to_ludo_user_id[bgg_user] = ludo_user
                         self.log_text(MessageType.DEBUG, f'Usuário do BGG "{bgg_user}" já mapeado'
@@ -353,6 +359,17 @@ class Importador(QWidget):
         except FileNotFoundError:
             self.log_error(MessageType.ERROR, 'Não foi possível encontrar o arquivo "usuarios.txt')
             return {}
+
+def is_invalid_bgg_user(username):
+    """Check if a BGG username is invalid"""
+    params = {'name': username}
+    response = get_from_bgg(BGG_USER_API, params)
+    if response.status_code == 200:
+        root = ElementTree.fromstring(response.content)
+        user_id = root.attrib['id']
+        if user_id.isdigit():
+            return False
+    return True
 
 def create_gui(icon):
     """Create and show the GUI Application"""
