@@ -15,11 +15,12 @@ from typing import List, NamedTuple
 from xml.etree import ElementTree
 
 import requests
-from PySide6.QtCore import QCoreApplication, QDate, QObject, QThread, QTime, Qt, Signal
+from PySide6.QtCore import (QAbstractItemModel, QCoreApplication, QDate, QModelIndex, QObject,
+                            QThread, QTime, Qt, Signal)
 from PySide6.QtGui import QIcon, QTextCursor
 from PySide6.QtWidgets import (QApplication, QButtonGroup, QDateTimeEdit, QDialog, QGridLayout,
                                QGroupBox, QInputDialog, QLabel, QLineEdit, QListView, QListWidget,
-                               QTextEdit, QPushButton, QRadioButton, QWidget)
+                               QTableView, QTextEdit, QPushButton, QRadioButton, QWidget)
 
 ICON_PATH = 'res/bgg_ludo.png'
 
@@ -239,12 +240,35 @@ class Importador(QWidget):
         except InputError:
             self.enable_editables.emit(True)
 
+    def show_play_table(self, plays):
+        """Shows a table with all the plays to be imported, allowing user to select some to skip"""
+        tree_model = PlayTableModel(plays)
+        table_widget = QTableView()
+        table_widget.setModel(tree_model)
+        table_widget.verticalHeader().setVisible(False)
+        table_view_header = table_widget.horizontalHeader()
+        table_view_header.setStretchLastSection(True)
+        for column in range(tree_model.columnCount()):
+            column_size = tree_model.data(tree_model.index(0, column), PlayTableModel.SIZE_ROLE)
+            table_view_header.resizeSection(column, column_size)
+        table_widget_dialog = QDialog(self)
+        table_widget_dialog.setModal(True)
+        grid_layout = QGridLayout(table_widget_dialog)
+        grid_layout.addWidget(table_widget, 1, 1)
+        table_widget_dialog.resize(800, 600)
+        table_widget_dialog.exec_()
+        skipped_plays = tree_model.get_skipped_plays()
+        return [play for play in plays if play.id not in skipped_plays]
+
     def post_plays(self, session, plays, bgg_user, ludo_user_id):
         """Receives plays from the Play Fetched thread and start the Ludopedia Logger"""
         user_map = self.get_bgg_to_ludo_users()
         if bgg_user not in user_map:
             user_map[bgg_user] = ludo_user_id
-        self.worker = LudopediaPlayLogger(session, plays, bgg_user, user_map)
+
+        selected_plays = self.show_play_table(plays)
+
+        self.worker = LudopediaPlayLogger(session, selected_plays, bgg_user, user_map)
         self.worker.request_search.connect(self.request_search_and_show_alternatives,
                                            Qt.BlockingQueuedConnection)
         self.worker.request_alternative.connect(self.request_alternative,
@@ -359,6 +383,115 @@ class Importador(QWidget):
         except FileNotFoundError:
             self.log_error(MessageType.ERROR, 'Não foi possível encontrar o arquivo "usuarios.txt')
             return {}
+
+
+class PlayTableModel(QAbstractItemModel):
+    """Table to show a summary of all games to be imported"""
+    HEADER_TITLES = ["Postar", "Id BGG", "Data", "Jogo", "Tempo (min)", "Local", "Comentários"]
+    HEADER_SIZES = [50, 70, 65, 235, 80, 100, 150]
+    SIZE_ROLE = Qt.UserRole + 1
+    games_to_skip = set()
+
+    def __init__(self, plays, parent = None):
+        super().__init__(parent)
+        self.plays = plays
+
+    def rowCount(self, _ = QModelIndex()):
+        """Provides number of rows (Overriden)"""
+        return len(self.plays)
+
+    def columnCount(self, _ = QModelIndex()):
+        """Provides number of columns (Overriden)"""
+        return 7
+
+    def headerData(self, section, orientation, role = Qt.DisplayRole):
+        """Provides column title labels (Overriden)"""
+        if role == Qt.DisplayRole and orientation == Qt.Horizontal:
+            return self.HEADER_TITLES[section]
+        return None
+
+    def index(self, row, column, _ = QModelIndex()):
+        """Provides index for the item (Overriden)"""
+        return self.createIndex(row, column, self.get_play(row).id)
+
+    def parent(self, _):
+        """Provides parent for the item (Overriden)"""
+        return QModelIndex()
+
+    def data(self, index, role=Qt.DisplayRole):
+        """Provides info to fill in the table (Overriden)"""
+        if index.isValid():
+            if role == Qt.DisplayRole:
+                return self.get_display_data(index.column(), index.row())
+            if role == self.SIZE_ROLE:
+                return self.get_column_horizontal_size(index.column())
+            if role == Qt.CheckStateRole and index.column() == 0:
+                return self.get_import_play_state(index.row())
+            if role == Qt.TextAlignmentRole:
+                return self.get_alignment(index.column())
+        return None
+
+    def setData(self, index, value, role):
+        """Allows changing the checkbox state that controls which games to post"""
+        if index.isValid() and role == Qt.CheckStateRole:
+            play_id = self.get_play(index.row()).id
+            if not value:
+                self.games_to_skip.add(play_id)
+            else:
+                self.games_to_skip.remove(play_id)
+            return True
+        return False
+
+    def flags(self, index):
+        """Defines flags for each of the items in the table (Overriden)"""
+        if index.isValid():
+            flags = super().flags(index)
+            if index.column() == 0:
+                return flags | Qt.ItemIsUserCheckable | Qt.ItemIsEnabled
+            return flags
+        return None
+
+    def get_skipped_plays(self):
+        """Returns all the plays that were unchecked and thus should be skipped"""
+        return self.games_to_skip
+
+    def get_play(self, row):
+        """Returns a play given a row"""
+        return self.plays[row]
+
+    def get_import_play_state(self, row):
+        """Returns whether a play is checked to be imported or not"""
+        play_id = self.get_play(row).id
+        return Qt.Unchecked if play_id in self.games_to_skip else Qt.Checked
+
+    def get_display_data(self, column, row):
+        """Returns texts to be printed at each of the cells"""
+        play = self.get_play(row)
+        if column == 1:
+            return play.id
+        if column == 2:
+            return play.date
+        if column == 3:
+            return play.game_name
+        if column == 4:
+            return play.length
+        if column == 5:
+            return play.location
+        if column == 6:
+            return play.comments
+        return None
+    
+    def get_alignment(self, column):
+        """Returns preferred text alignment for each column"""
+        if column == 1 or column == 2:
+            return Qt.AlignHCenter
+        if column == 4:
+            return Qt.AlignRight
+        return Qt.AlignLeft
+
+    def get_column_horizontal_size(self, column):
+        """Returns horizontal size for each column"""
+        return self.HEADER_SIZES[column] if column < len(self.HEADER_SIZES) else 0
 
 def is_invalid_bgg_user(username):
     """Check if a BGG username is invalid"""
