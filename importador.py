@@ -480,7 +480,7 @@ class PlayTableModel(QAbstractItemModel):
         if column == 6:
             return play.comments
         return None
-    
+
     def get_alignment(self, column):
         """Returns preferred text alignment for each column"""
         if column == 1 or column == 2:
@@ -867,7 +867,7 @@ class LudopediaPlayLogger(GenericWorker):
                     imported_plays += 1
                 else:
                     self.post_error(f'Erro ao postar partida #{bgg_play.id}'
-                                    f'de {bgg_play.game_name}')
+                                    f' de {bgg_play.game_name}')
 
             else:
                 self.post_error(f'Jogo não encontrado na Ludopedia: {bgg_play.game_name}')
