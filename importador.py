@@ -616,6 +616,9 @@ class GenericWorker(QObject):
         """Base method to run and post exceptions as errors"""
         try:
             self.run_impl()
+        except InputError as exc:
+            self.exit_on_error.emit()
+            raise
         except Exception as exc:
             self.post_error(f'Thread exited with "{exc}"')
             self.exit_on_error.emit()
@@ -713,9 +716,12 @@ class BGGPlayFetcher(GenericWorker):
 
                 if page == 1:
                     total_partidas = root.get('total')
-                    total_pages = ceil(int(total_partidas)/BGG_PLAYS_PER_PAGE)
-                    self.post_generic(f'Total de partidas encontradas no BGG: {total_partidas}')
-
+                    if int(total_partidas) > 0:
+                        total_pages = ceil(int(total_partidas)/BGG_PLAYS_PER_PAGE)
+                        self.post_generic(f'Total de partidas encontradas no BGG: {total_partidas}')
+                    else:
+                        self.post_generic(f'Nenhuma partida encontrada no período selecionado')
+                        raise InputError
                 self.post_generic(f'Obtendo partidas do BGG, página {page}/{total_pages}')
 
                 plays.extend(parse_play(play, username) for play in root.findall('play'))
