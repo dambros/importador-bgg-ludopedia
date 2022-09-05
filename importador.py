@@ -33,7 +33,7 @@ BGG_USER_API = f'{BGG_API}user'
 BGG_PLAYS_PER_PAGE = int(100)
 
 # Ludopedia constants
-LUDOPEDIA_URL = 'https://www.ludopedia.com.br/'
+LUDOPEDIA_URL = 'https://ludopedia.com.br/'
 LUDOPEDIA_ADD_GAME_URL = f'{LUDOPEDIA_URL}classes/jogo_usuario_ajax.php'
 LUDOPEDIA_ADD_PLAY_URL = f'{LUDOPEDIA_URL}cadastra_partida'
 LUDOPEDIA_LOGIN_URL = f'{LUDOPEDIA_URL}login'
