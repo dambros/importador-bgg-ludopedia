@@ -33,7 +33,7 @@ BGG_USER_API = f'{BGG_API}user'
 BGG_PLAYS_PER_PAGE = int(100)
 
 # Ludopedia constants
-LUDOPEDIA_URL = 'https://www.ludopedia.com.br/'
+LUDOPEDIA_URL = 'https://ludopedia.com.br/'
 LUDOPEDIA_ADD_GAME_URL = f'{LUDOPEDIA_URL}classes/jogo_usuario_ajax.php'
 LUDOPEDIA_ADD_PLAY_URL = f'{LUDOPEDIA_URL}cadastra_partida'
 LUDOPEDIA_LOGIN_URL = f'{LUDOPEDIA_URL}login'
@@ -480,7 +480,7 @@ class PlayTableModel(QAbstractItemModel):
         if column == 6:
             return play.comments
         return None
-    
+
     def get_alignment(self, column):
         """Returns preferred text alignment for each column"""
         if column == 1 or column == 2:
@@ -616,6 +616,9 @@ class GenericWorker(QObject):
         """Base method to run and post exceptions as errors"""
         try:
             self.run_impl()
+        except InputError as exc:
+            self.exit_on_error.emit()
+            raise
         except Exception as exc:
             self.post_error(f'Thread exited with "{exc}"')
             self.exit_on_error.emit()
@@ -713,9 +716,12 @@ class BGGPlayFetcher(GenericWorker):
 
                 if page == 1:
                     total_partidas = root.get('total')
-                    total_pages = ceil(int(total_partidas)/BGG_PLAYS_PER_PAGE)
-                    self.post_generic(f'Total de partidas encontradas no BGG: {total_partidas}')
-
+                    if int(total_partidas) > 0:
+                        total_pages = ceil(int(total_partidas)/BGG_PLAYS_PER_PAGE)
+                        self.post_generic(f'Total de partidas encontradas no BGG: {total_partidas}')
+                    else:
+                        self.post_generic(f'Nenhuma partida encontrada no período selecionado')
+                        raise InputError
                 self.post_generic(f'Obtendo partidas do BGG, página {page}/{total_pages}')
 
                 plays.extend(parse_play(play, username) for play in root.findall('play'))
@@ -861,7 +867,7 @@ class LudopediaPlayLogger(GenericWorker):
                     imported_plays += 1
                 else:
                     self.post_error(f'Erro ao postar partida #{bgg_play.id}'
-                                    f'de {bgg_play.game_name}')
+                                    f' de {bgg_play.game_name}')
 
             else:
                 self.post_error(f'Jogo não encontrado na Ludopedia: {bgg_play.game_name}')
