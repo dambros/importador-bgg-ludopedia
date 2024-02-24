@@ -256,7 +256,7 @@ class Importador(QWidget):
         grid_layout = QGridLayout(table_widget_dialog)
         grid_layout.addWidget(table_widget, 1, 1)
         table_widget_dialog.resize(800, 600)
-        table_widget_dialog.exec_()
+        table_widget_dialog.exec()
         skipped_plays = tree_model.get_skipped_plays()
         return [play for play in plays if play.id not in skipped_plays]
 
@@ -331,7 +331,7 @@ class Importador(QWidget):
         alternatives_dialog.setOption(QInputDialog.UseListViewForComboBoxItems)
         game_str = f'{bgg_play.game_name} ({bgg_play.year_published})'
         alternatives_dialog.setLabelText(f'Escolha uma alternativa para o jogo "{game_str}"')
-        if alternatives_dialog.exec_():
+        if alternatives_dialog.exec():
             selected_index = alternatives_list.index(alternatives_dialog.textValue())
             return data[selected_index]
         return None
@@ -342,7 +342,7 @@ class Importador(QWidget):
         game_str = f'{bgg_play.game_name} ({bgg_play.year_published})'
         new_search_dialog.setLabelText(f'Jogo "{game_str}" não encontrado\nBuscar por:')
         new_search_dialog.setInputMode(QInputDialog.TextInput)
-        if new_search_dialog.exec_():
+        if new_search_dialog.exec():
             data = search_ludopedia_games(session, new_search_dialog.textValue())
             data = self.show_alternatives_dialog(bgg_play, data)
             self.alternative_chosen.emit(data)
@@ -517,7 +517,7 @@ def create_gui(icon):
     importer.setVisible(True)
     importer.resize(500, 400)
 
-    sys.exit(app.exec_())
+    sys.exit(app.exec())
 
 def get_from_bgg(api_url, parameters):
     """Successively attempts to get data from BGG given an API"""
