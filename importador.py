@@ -381,7 +381,7 @@ class Importador(QWidget):
                                                              f' ludopedia para "{ludo_user}"')
                 return bgg_to_ludo_user_id
         except FileNotFoundError:
-            self.log_error(MessageType.ERROR, 'Não foi possível encontrar o arquivo "usuarios.txt')
+            self.log_text(MessageType.ERROR, 'Não foi possível encontrar o arquivo "usuarios.txt')
             return {}
 
 
